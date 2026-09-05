@@ -11,9 +11,8 @@ License: MIT
 import argparse
 import csv
 import json
-import math
-import sys
-from typing import Dict, Any, List, Optional
+import os
+from typing import Dict, Any
 
 
 def calculate_metrics(**kwargs) -> Dict[str, Any]:
@@ -66,10 +65,20 @@ def process_single(args) -> None:
 
 
 def process_batch(input_csv: str, output_csv: str) -> None:
-    with open(input_csv, mode="r", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        fieldnames = list(reader.fieldnames or [])
-        rows = list(reader)
+    # Validate input file exists
+    input_path = input_csv
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Input CSV not found: {input_csv}")
+
+    try:
+        with open(input_path, mode="r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            fieldnames = list(reader.fieldnames or [])
+            if not fieldnames:
+                raise ValueError(f"Input CSV has no headers or is empty: {input_csv}")
+            rows = list(reader)
+    except csv.Error as e:
+        raise ValueError(f"Malformed CSV input: {e}")
 
     out_fields = fieldnames + ["score", "classification", "clinical_recommendation"]
     out_rows = []
@@ -82,10 +91,13 @@ def process_batch(input_csv: str, output_csv: str) -> None:
         row_dict["clinical_recommendation"] = calc_res["clinical_recommendation"]
         out_rows.append(row_dict)
 
-    with open(output_csv, mode="w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=out_fields)
-        writer.writeheader()
-        writer.writerows(out_rows)
+    try:
+        with open(output_csv, mode="w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=out_fields)
+            writer.writeheader()
+            writer.writerows(out_rows)
+    except OSError as e:
+        raise OSError(f"Failed to write output CSV: {e}")
 
     print(f"Processed {len(out_rows)} records -> {output_csv}")
 
