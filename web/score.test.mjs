@@ -33,6 +33,7 @@ test('all low-risk criteria are mandatory', () => {
   assert.equal(calculateHeart(ok).heart_pathway, 'Low-risk criteria met');
   assert.equal(calculateHeart({ ...ok, prior_cad: true }).heart_pathway, 'Low-risk criteria not met');
   assert.equal(calculateHeart({ ...ok, ischemic_ecg: true }).heart_pathway, 'Low-risk criteria not met');
+  assert.equal(calculateHeart({ ...ok, ecg: 2 }).heart_pathway, 'Low-risk criteria not met');
   assert.equal(calculateHeart({ ...ok, serial_troponins_negative: false }).heart_pathway, 'Low-risk criteria not met');
   assert.equal(calculateHeart({ ...ok, history: 2, ecg: 2 }).heart_pathway, 'Low-risk criteria not met');
   assert.equal(calculateHeart({ ...ok, troponin_ratio: 1.5 }).heart_pathway, 'Low-risk criteria not met');
