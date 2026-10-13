@@ -45,7 +45,7 @@ export function calculateHeart(input) {
   const classification = score <= 3 ? 'Low (0-3)' : (score <= 6 ? 'Intermediate (4-6)' : 'High (7-10)');
   const pathway = serial === null || ischemic === null
     ? 'Not assessed'
-    : hear <= 3 && ratio <= 1 && serial && !ischemic && !cad
+    : hear <= 3 && e !== 2 && ratio <= 1 && serial && !ischemic && !cad
       ? 'Low-risk criteria met'
       : 'Low-risk criteria not met';
   return {
