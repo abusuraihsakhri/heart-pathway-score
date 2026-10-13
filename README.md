@@ -1,206 +1,77 @@
-# Heart Pathway Score
+# HEART Score & HEART Pathway
 
-> **Domain:** Clinical Decision Support & Biomedical Computing
-> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
+A small, dependency-free reference calculator for the five-component HEART chest-pain score and conditional HEART Pathway low-risk criteria. Available as a browser-only calculator and Python CLI/CSV module.
 
-<div align="center">
+**Clinical limitation:** This is a research/educational reference, not a clinically validated medical device or discharge decision system. Suspected STEMI, unstable patients and other time-critical presentations require clinical evaluation irrespective of the displayed score. Use locally adopted chest-pain algorithms, clinician ECG interpretation and assay-specific serial troponin protocols.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Browser calculator
 
-</div>
+The static interface is in `web/`. To run locally:
 
----
-
-## 📖 What It Does
-
-HEART Score & HEART Pathway for Chest Pain
-Stratifies emergency department chest pain patients for safe early discharge vs admission.
-
-The project provides:
-- **Core algorithm** (`heart_score.py`): Zero-dependency Python implementation for single and batch evaluation
-- **Enterprise agent framework** (`agents/`): Multi-worker evaluation with PHI protection and cryptographic audit trails
-- **FastAPI REST API** (`agents/api.py`): REST endpoints for task processing and audit log retrieval
-- **CLI** (`cli.py`): Command-line interface for single/batch processing and interactive chat
-
-Author: Dr. Abu Suraih Sakhri
-License: MIT
-
----
-
-## 🚀 Installation
-
-### Prerequisites
-- Python 3.10, 3.11, or 3.12
-- pip
-
-### Install Dependencies
-```bash
-pip install -r requirements.txt
+```sh
+python -m http.server 8080 --directory web
 ```
 
----
+Open `http://localhost:8080/`. It runs on ordinary browsers with JavaScript modules (recent Chrome, Firefox, Safari and Edge), including mobile browsers. No Python interpreter, API service, cookies, storage or external runtime dependencies are required. The static app performs calculations locally and makes no network requests with input data.
 
-## ⚙️ Core Capability & Algorithmic Modules
+## Scoring
 
-### `heart_score.py` - Core Algorithm
-- **`calculate_metrics(**kwargs)`**: Evaluates numeric inputs and returns a weighted score with clinical classification
-- **`process_single(args)`**: Processes a single evaluation from command-line arguments
-- **`process_batch(input_csv, output_csv)`**: Batch processes CSV records and appends score/classification columns
+Each HEART component contributes 0–2 points.
 
-### `agents/` - Enterprise Framework
-- **Supervisor Orchestrator**: Coordinates multi-worker evaluation with consensus dossier generation
-- **Specialized Workers**: InvariantQC, SafetyEscalation, ProtocolConformance workers for domain-specific analysis
-- **PHI Guard**: Zero-PHI outbound interceptor with regex-based pattern detection (MRN, SSN, phone, email)
-- **Audit Trail**: HMAC-SHA256 tamper-evident chained audit log for all operations
-- **FastAPI Server**: REST API with `/health`, `/metrics`, `/api/audit`, `/api/chat`, `/api/audit/logs` endpoints
+| Component | 0 points | 1 point | 2 points |
+| --- | --- | --- | --- |
+| History | Slight/nonspecific | Moderately suspicious | Highly suspicious |
+| ECG | Normal | Nonspecific abnormality | Significant ST deviation |
+| Age (years) | <45 | 45–64 | ≥65 |
+| Risk factors | 0 | 1–2 | ≥3 or established coronary artery disease |
+| Initial troponin / assay URL | ≤1 | >1 and <3 | ≥3 |
 
----
+HEART total is 0–10: **low** 0–3, **intermediate** 4–6, **high** 7–10. For this reference implementation, Pathway low-risk criteria additionally require **HEAR ≤3**, **no ischemic ECG findings**, **no prior CAD**, **negative serial troponins according to the local protocol**, and **an initial troponin at or below its assay upper reference limit**. If serial results or ischemic ECG status are not provided, the Pathway returns **Not assessed**. A positive criterion does not authorize discharge.
 
-## 📐 Algorithm
+The clinical HEART and HEART Pathway variants differ between studies and local protocols, especially regarding troponin assay/timing. Verify applicability before use.
 
-The core scoring algorithm computes a weighted sum of input parameters:
+References:
+- <https://pmc.ncbi.nlm.nih.gov/articles/PMC6005932/>
+- <https://www.jacc.org/doi/10.1016/j.jacc.2018.12.046>
+- <https://pmc.ncbi.nlm.nih.gov/articles/PMC7908281/>
 
-```python
-score = primary_val + Σ(val * (1/idx) for idx, val in enumerate(other_vals, start=2))
-rounded_score = round(score, 2)
-```
+## Python CLI and CSV
 
-Classification tiers:
-- **Low / Standard**: score < 10.0
-- **Moderate / Intermediate**: 10.0 ≤ score < 25.0
-- **High / Severe**: score ≥ 25.0
+The core `heart_score.py` requires only the Python standard library. CLI examples use **synthetic** observations without identifiable patient data:
 
----
-
-## 💻 Usage
-
-### Core Module (heart_score.py)
-
-#### Single Evaluation
-```bash
-python heart_score.py single --v1 14.5 --v2 4.2 --v3 1.8
-```
-
-#### Batch CSV Processing
-```bash
+```sh
+python heart_score.py single --history 0 --ecg 0 --age 44 --risk-factors 0 --troponin-ratio 0.5 --prior-cad no --serial-negative yes --ischemic-ecg no
 python heart_score.py batch -i sample.csv -o results.csv
 ```
 
-### Enterprise CLI (cli.py)
+Required CSV columns are `history,ecg,age,risk_factors,troponin_ratio,prior_cad`. Optional columns are `serial_troponins_negative,ischemic_ecg`. Boolean values accept `yes/no` or `true/false`. The output appends `score,hear_score,classification,heart_pathway` and keeps existing input columns. Incomplete or invalid rows fail explicitly; the input file is never overwritten.
 
-#### Single Audit Evaluation
-```bash
-python cli.py audit --task-id TASK-01 --target SPECIMEN-01 --primary 28.5 --secondary 14.2
-```
+The former generic `--v1/--v2/--v3` weighted-sum interface was removed because it did not implement HEART scoring and could misclassify clinical cases.
 
-#### Batch Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+## Optional legacy audit framework
 
-#### Supervisory Chat
-```bash
-python cli.py chat "Explain the HEART pathway criteria"
-```
+`agents/`, `cli.py`, `simulator.py`, `enrichment.py` and the FastAPI endpoints are retained for backward compatibility and technical demonstrations. **These are generic audit/simulation functions, not clinical HEART decision algorithms**, and their configurable thresholds do not represent established clinical standards. The mock chat provider does not perform language-model or clinical inference.
 
-#### Verify Audit Integrity
-```bash
-python cli.py verify-audit
-```
+To run these modules:
 
-#### Launch REST API Server
-```bash
+```sh
+python -m pip install -r requirements.txt
+python -m pytest -q
+node --test web/score.test.mjs
+python cli.py audit --task-id TEST-01 --target TEST-TARGET --primary 12 --secondary 4
 python cli.py serve --host 127.0.0.1 --port 8000
 ```
 
-### Input Data Schema
+The API uses volatile in-memory audit records and an HMAC signing key. A random key is generated at startup unless `AUDIT_SECRET_KEY` is set. The pattern-based identifier guard is **not comprehensive PHI deidentification**. Do not submit personal health information to the legacy API, mock chat or sample scripts. The API is not authenticated or designed for open Internet exposure.
 
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `Patient_ID` | Unique patient or specimen identifier | Required |
-| `v1` | Primary measurement parameter | Required |
-| `v2` | Secondary measurement parameter | Required |
-| `v3` | Tertiary measurement parameter | Optional |
+## Docker
 
----
+Build the optional API with `docker build -t heart-pathway-score .`; run it with `docker compose up --build` (Compose binds to loopback by default). Docker is not required for the web calculator.
 
-## 🛡️ Security Architecture
+## Development and testing
 
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation
-* **Secure Key Generation:** Audit keys are generated using `secrets.token_hex(32)` when not provided via `AUDIT_SECRET_KEY` environment variable
-* **Input Validation:** CSV processing validates file existence, headers, and handles malformed data gracefully
+Python 3.10+ and Node.js 22+ (only for JavaScript tests) are supported targets. GitHub Actions tests Python calculation, existing agent modules, and JavaScript component boundaries. Browser calculation uses plain ECMAScript modules without npm dependencies.
 
----
+## Privacy and license
 
-## 🧪 Testing
-
-Run the full test suite:
-
-```bash
-pytest -v
-```
-
-Execute high-throughput batch simulation:
-
-```bash
-python simulator.py --tasks 100
-```
-
----
-
-## 🐳 Container Deployment
-
-### Docker Build & Run
-```bash
-docker build -t heart-pathway-score .
-docker run -p 8000:8000 heart-pathway-score
-```
-
-### Docker Compose
-```bash
-# Copy and configure environment
-cp .env.example .env
-# Edit .env to set AUDIT_SECRET_KEY (generate with: python -c "import secrets; print(secrets.token_hex(32))")
-docker compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-heart-pathway-score/
-├── heart_score.py          # Core scoring algorithm
-├── cli.py                  # Enterprise CLI
-├── simulator.py            # High-throughput simulation
-├── enrichment.py           # Enrichment feature engines
-├── requirements.txt        # Python dependencies
-├── Dockerfile              # Container build
-├── docker-compose.yml      # Compose configuration
-├── .env.example            # Environment variable template
-├── sample.csv              # Sample input data
-├── agents/                 # Enterprise agent framework
-│   ├── __init__.py
-│   ├── api.py             # FastAPI server
-│   ├── base.py            # Security, PHI Guard, Audit Trail
-│   ├── models.py          # Pydantic schemas
-│   ├── supervisor.py      # Supervisor orchestrator
-│   ├── workers.py         # Specialized worker agents
-│   ├── llm_factory.py     # LLM client factory
-│   ├── learning.py        # Bayesian calibration engine
-│   ├── metrics.py         # Prometheus metrics
-│   └── streamer.py        # WebSocket telemetry
-├── tests/                  # Test suite
-│   ├── test_heart_pathway_score.py
-│   └── test_enrichment.py
-├── web/                    # Operations console
-│   └── index.html
-└── .github/workflows/      # CI/CD
-    └── ci.yml
-```
+Browser calculations stay in the local tab; no automatic storage, submission or telemetry. Local CSVs are processed on the user's machine. The optional local API may keep non-identifying audit metadata in process memory; it should not be used with sensitive clinical data. See [LICENSE](LICENSE) for MIT license terms.
