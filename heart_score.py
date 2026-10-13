@@ -95,7 +95,7 @@ def calculate_metrics(
 
     if serial_negative is None or ischemic is None:
         pathway = "Not assessed"
-    elif hear_score <= 3 and ratio <= 1 and serial_negative and not ischemic and not cad:
+    elif hear_score <= 3 and e != 2 and ratio <= 1 and serial_negative and not ischemic and not cad:
         pathway = "Low-risk criteria met"
     else:
         pathway = "Low-risk criteria not met"
