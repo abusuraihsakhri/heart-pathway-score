@@ -56,9 +56,9 @@ def test_pathway_requires_confirmations():
     fields = dict(serial_troponins_negative=True, ischemic_ecg=False)
     assert case(**fields)["heart_pathway"] == "Low-risk criteria met"
     assert case(**fields, prior_cad=True)["heart_pathway"] == "Low-risk criteria not met"
-    assert case(**fields, ischemic_ecg=True)["heart_pathway"] == "Low-risk criteria not met"
+    assert case(**{**fields, "ischemic_ecg": True})["heart_pathway"] == "Low-risk criteria not met"
     assert case(**fields, ecg=2)["heart_pathway"] == "Low-risk criteria not met"
-    assert case(**fields, serial_troponins_negative=False)["heart_pathway"] == "Low-risk criteria not met"
+    assert case(**{**fields, "serial_troponins_negative": False})["heart_pathway"] == "Low-risk criteria not met"
     assert case(**fields, troponin_ratio=1.1)["heart_pathway"] == "Low-risk criteria not met"
     assert case(**fields, history=2, ecg=2)["heart_pathway"] == "Low-risk criteria not met"
     assert case(serial_troponins_negative=True)["heart_pathway"] == "Not assessed"
