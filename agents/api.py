@@ -12,8 +12,8 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Heart Pathway Score API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
-    version="3.0.0-ENTERPRISE",
+    description="Legacy demonstration audit API; not a clinical scoring service",
+    version="0.1.0",
 )
 
 
@@ -23,7 +23,7 @@ class ChatRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "HEALTHY", "service": "heart-pathway-score", "domain": "Clinical & Biomedical AI", "standard": "CAP / CLSI / ISO Standards", "version": "3.0.0-ENTERPRISE"}
+    return {"status": "HEALTHY", "service": "heart-pathway-score", "domain": "Clinical & Biomedical AI", "standard": "Demonstration only", "version": "0.1.0"}
 
 
 @app.get("/metrics")
