@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [master]
 
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -44,3 +48,31 @@ jobs:
           node --check web/score.test.mjs
       - name: Test browser scoring logic
         run: node --test web/score.test.mjs
+      - name: Smoke-test static site and module responses
+        run: |
+          python3 -m http.server 8765 --directory web &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID" EXIT
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://127.0.0.1:8765/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8765/app.mjs > /dev/null
+          curl -fsS http://127.0.0.1:8765/score.mjs > /dev/null
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t heart-pathway-score:ci .
+      - name: Smoke-test API
+        run: |
+          docker run -d --name heart-score-ci -p 127.0.0.1:18000:8000 heart-pathway-score:ci
+          trap "docker rm -f heart-score-ci" EXIT
+          for i in $(seq 1 25); do
+            if curl -fsS http://127.0.0.1:18000/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs heart-score-ci
+          exit 1
