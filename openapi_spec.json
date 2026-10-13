@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Heart Pathway Score API",
-    "description": "Enterprise Distributed Component Platform (Clinical & Cryptographic AI) adhering to CAP / CLSI / NIST Standards.",
-    "version": "3.0.0-ENTERPRISE",
+    "description": "Legacy demonstration-only audit API; not a clinical scoring service.",
+    "version": "0.1.0",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
       "url": "https://github.com/abusuraihsakhri"
